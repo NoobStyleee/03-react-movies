@@ -1,27 +1,24 @@
-import type { FormEvent } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import styles from './SearchBar.module.css';
 
-// 1. Define the type for the props
 interface SearchBarProps {
   onSubmit: (query: string) => void;
 }
 
-// 2. Pass the props to the component
 const SearchBar = ({ onSubmit }: SearchBarProps) => {
   
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevents the browser from reloading the page
-    
-    const form = e.currentTarget;
-    const input = form.elements.namedItem('query') as HTMLInputElement;
-    const query = input.value.trim();
+  const handleAction = (formData: FormData) => {
+    const query = (formData.get('query') as string).trim();
 
     if (query === '') {
-      alert('Please enter a search term');
+      toast.error('Please enter a search query.', {
+        duration: 3000,
+        position: 'top-right',
+      });
       return;
     }
 
-    onSubmit(query); // 3. Send the query back up to App.tsx
+    onSubmit(query);
   };
 
   return (
@@ -36,12 +33,11 @@ const SearchBar = ({ onSubmit }: SearchBarProps) => {
           Powered by TMDB
         </a>
         
-        {/* Attach the handleSubmit function here */}
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form className={styles.form} action={handleAction}>
           <input
             className={styles.input}
             type="text"
-            name="query"
+            name="query" 
             autoComplete="off"
             placeholder="Search movies..."
             autoFocus
@@ -51,6 +47,8 @@ const SearchBar = ({ onSubmit }: SearchBarProps) => {
           </button>
         </form>
       </div>
+      
+      <Toaster />
     </header>
   );
 };

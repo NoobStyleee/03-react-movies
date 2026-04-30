@@ -1,8 +1,15 @@
-// ErrorMessage.tsx
 import css from './ErrorMessage.module.css';
 
-const ErrorMessage = () => {
-  return <p className={css.text}>There was an error, please try again...</p>;
+interface ErrorMessageProps {
+  message: string;
+}
+
+const ErrorMessage = ({ message }: ErrorMessageProps) => {
+  return (
+    <div className={css.container}>
+      <p className={css.text}>{message}</p>
+    </div>
+  );
 };
 
 export default ErrorMessage;
