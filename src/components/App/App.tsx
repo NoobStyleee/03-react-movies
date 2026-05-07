@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast'; 
+import ReactPaginate from 'react-paginate';
 import styles from './App.module.css';
 import SearchBar from '../SearchBar/SearchBar';
 import MovieGrid from '../MovieGrid/MovieGrid';
@@ -8,12 +9,19 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MovieModal from '../MovieModal/MovieModal'; 
 import { fetchMovies } from '../../services/movieService';
 import type { Movie } from '../../types/movie';
+import css from '../Pagination/Pagination.module.css';
+
+const Paginate = (ReactPaginate as any).default || ReactPaginate;
 
 function App() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+
+  const [query, setQuery] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
 
   const handleSelectMovie = (movie: Movie): void => {
     setSelectedMovie(movie);
@@ -23,28 +31,35 @@ function App() {
     setSelectedMovie(null);
   };
 
-  const handleSearch = async (query: string): Promise<void> => {
+  const executeSearch = async (searchQuery: string, searchPage: number) => {
     try {
-      setMovies([]); 
-      setError(null);
       setIsLoading(true);
+      setError(null);
 
-      const results = await fetchMovies(query); 
+      const data = await fetchMovies(searchQuery, searchPage);
 
-      if (results.length === 0) {
-        toast.error("No movies found for your request.", {
-          position: "top-right",
-        });
-        return; 
+      if (data.results.length === 0) {
+        toast.error("No movies found.");
+        setMovies([]);
+        setTotalPages(0);
+        return;
       }
 
-      setMovies(results);
+      setMovies(data.results);
+      setTotalPages(data.total_pages);
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      const message = 'Failed to fetch movies. Please try again later.';
-      setError(message);
+      setError('Failed to fetch movies. Please try again later.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (newQuery: string) => {
+    setQuery(newQuery);
+    setPage(1); 
+    executeSearch(newQuery, 1);
   };
 
   return (
@@ -64,7 +79,36 @@ function App() {
             {isLoading ? (
               <Loader />
             ) : (
-              <MovieGrid movies={movies} onSelect={handleSelectMovie} />
+              <>
+                <MovieGrid movies={movies} onSelect={handleSelectMovie} />
+                
+                {movies.length > 0 && (
+                  <Paginate
+                    pageCount={totalPages}
+                    pageRangeDisplayed={5}
+                    marginPagesDisplayed={1}
+                    onPageChange={({ selected }: { selected: number }) => {
+                        const nextPage = selected + 1;
+                        setPage(nextPage);
+                        executeSearch(query, nextPage);
+                    }}
+                    forcePage={page - 1}
+                    containerClassName={css.pagination}
+                    activeClassName={css.active}
+                    nextLabel="→"
+                    previousLabel="←"
+                    pageClassName={css.pageItem}
+                    pageLinkClassName={css.pageLink}
+                    previousClassName={css.pageItem}
+                    previousLinkClassName={css.pageLink}
+                    nextClassName={css.pageItem}
+                    nextLinkClassName={css.pageLink}
+                    breakLabel="..."
+                    breakClassName={css.pageItem}
+                    breakLinkClassName={css.pageLink}
+                  />
+                )}
+              </>
             )}
           </>
         )}
